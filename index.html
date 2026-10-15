@@ -20,7 +20,10 @@
 <meta property="og:image" content="https://lazylarder.com/images/icon-512.png">
 <meta name="twitter:card" content="summary">
 <style>
+html{background:linear-gradient(#FFFFFF 50%, #292929 50%)}
 body{margin:0;background:#F0EAE5}
+body > div{min-height:100vh;display:flex;flex-direction:column}
+body > div > main{flex:1 0 auto}
 a{color:#286552}a:hover{color:#1d4b3d}
 .llb-hero{display:grid;grid-template-columns:repeat(2, minmax(0, 1fr));gap:56px;align-items:center}
 .llb-feature{display:grid;grid-template-columns:repeat(2, minmax(0, 1fr));gap:56px;align-items:center}
@@ -51,7 +54,7 @@ html:not([data-mode="live"]) .when-live{display:none !important}
 <div style="font-family: 'Lora', Georgia, serif; font-size: 17px; line-height: 1.6; color: #292929; background: #F0EAE5; display: flex; flex-direction: column">
   <header style="background: #FFFFFF; border-bottom: 2px solid #292929">
     <div style="max-width: 1120px; margin: 0 auto; padding: 14px 20px; display: flex; align-items: center; gap: 14px">
-      <a href="./" aria-label="Lazy Larder home" style="display: flex; align-items: center; gap: 14px; text-decoration: none"><img src="images/logo.png" alt="" style="width: 50px; height: 50px; border-radius: 12px;">
+      <a href="/" aria-label="Lazy Larder home" style="display: flex; align-items: center; gap: 14px; text-decoration: none"><img src="images/logo.png" alt="" style="width: 50px; height: 50px; border-radius: 12px;">
       <span style="font-family: 'Playfair Display', Georgia, serif; font-weight: 700; font-size: 26px; color: #286552; white-space: nowrap">Lazy Larder</span></a>
       <a class="llb-btn when-waitlist llb-head-cta" href="#" data-link="waitlist" target="_blank" rel="noopener" style="margin-left: auto; display: inline-flex; align-items: center; min-height: 44px; padding: 8px 18px; border: 2px solid #292929; border-radius: 10px; background: #FFFFFF; color: #292929; text-decoration: none; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 700; font-size: 14px; letter-spacing: 0.04em; text-transform: uppercase; box-shadow: 3px 3px 0 #292929; white-space: nowrap">Join the waitlist</a>
       <a class="when-live llb-head-cta" href="#" data-link="appStore" target="_blank" rel="noopener" style="margin-left: auto; display: inline-flex"><span style="display: inline-flex; align-items: center; min-height: 40px; padding: 0 20px; border-radius: 10px; background: #000000; color: #FFFFFF; font-family: -apple-system, 'Helvetica Neue', sans-serif; font-size: 15px; font-weight: 600">Download on the App Store</span></a>
@@ -191,8 +194,8 @@ html:not([data-mode="live"]) .when-live{display:none !important}
     <div style="max-width: 1120px; margin: 0 auto; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 16px">
       <span style="font-family: 'Playfair Display', Georgia, serif; font-weight: 700">© Lazy Larder</span>
       <nav aria-label="Site links" style="display: flex; flex-wrap: wrap; align-items: center; gap: 4px 24px">
-        <a href="about.html" style="display: inline-flex; align-items: center; min-height: 44px; color: #F0EAE5">About</a>
-        <a href="privacy.html" style="display: inline-flex; align-items: center; min-height: 44px; color: #F0EAE5">Privacy Policy</a>
+        <a href="/about" style="display: inline-flex; align-items: center; min-height: 44px; color: #F0EAE5">About</a>
+        <a href="/privacy" style="display: inline-flex; align-items: center; min-height: 44px; color: #F0EAE5">Privacy Policy</a>
       </nav>
       <span>Meal planning for the whole household</span>
     </div>
