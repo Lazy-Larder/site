@@ -20,10 +20,10 @@
 <meta property="og:image" content="https://lazylarder.com/images/icon-512.png">
 <meta name="twitter:card" content="summary">
 <style>
-html{background:linear-gradient(#FFFFFF 50%, #292929 50%)}
+html{background:#292929 linear-gradient(#FFFFFF 50%, #292929 50%);overscroll-behavior-y:none}
 body{margin:0;background:#F0EAE5}
-body > div{min-height:100vh;display:flex;flex-direction:column}
-body > div > main{flex:1 0 auto}
+.ll-page{min-height:100vh;display:flex;flex-direction:column}
+.ll-page > main{flex:1 0 auto}
 a{color:#286552}a:hover{color:#1d4b3d}
 .llb-hero{display:grid;grid-template-columns:repeat(2, minmax(0, 1fr));gap:56px;align-items:center}
 .llb-feature{display:grid;grid-template-columns:repeat(2, minmax(0, 1fr));gap:56px;align-items:center}
@@ -51,7 +51,7 @@ html:not([data-mode="live"]) .when-live{display:none !important}
 </script>
 </head>
 <body>
-<div style="font-family: 'Lora', Georgia, serif; font-size: 17px; line-height: 1.6; color: #292929; background: #F0EAE5; display: flex; flex-direction: column">
+<div class="ll-page" style="font-family: 'Lora', Georgia, serif; font-size: 17px; line-height: 1.6; color: #292929; background: #F0EAE5; display: flex; flex-direction: column">
   <header style="background: #FFFFFF; border-bottom: 2px solid #292929">
     <div style="max-width: 1120px; margin: 0 auto; padding: 14px 20px; display: flex; align-items: center; gap: 14px">
       <a href="/" aria-label="Lazy Larder home" style="display: flex; align-items: center; gap: 14px; text-decoration: none"><img src="images/logo.png" alt="" style="width: 50px; height: 50px; border-radius: 12px;">
