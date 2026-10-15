@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lazy Larder</title>
+<meta name="description" content="Collect recipes, plan your weekly meals, and automate your shopping list – all shared with others in your household.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&amp;family=Lora:wght@400;500&amp;family=Playfair+Display:wght@600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#F0EAE5}
+a{color:#286552}a:hover{color:#1d4b3d}
+.llb-hero{display:grid;grid-template-columns:repeat(2, minmax(0, 1fr));gap:56px;align-items:center}
+.llb-feature{display:grid;grid-template-columns:repeat(2, minmax(0, 1fr));gap:56px;align-items:center}
+.llb-btn{transition:transform .12s ease, box-shadow .12s ease}
+.llb-btn:hover{transform:translate(-1px,-1px);box-shadow:5px 5px 0 #1A1A1A}
+details summary::-webkit-details-marker{display:none}
+details[open] .llb-plus{transform:rotate(45deg)}
+html[data-mode="live"] .when-waitlist{display:none !important}
+html:not([data-mode="live"]) .when-live{display:none !important}
+@media (max-width: 760px){.llb-hero,.llb-feature{grid-template-columns:minmax(0, 1fr);gap:40px}}
+</style>
+<script>
+  /* Filled from site-config.json by build.py – edit that file, not this line. */
+  var SITE = {"mode": "waitlist", "launchAt": "", "links": {"waitlist": "#", "appStore": "#", "about": "#", "privacy": "#"}};
+  (function () {
+    var live = SITE.mode === "live" || (!!SITE.launchAt && Date.now() >= Date.parse(SITE.launchAt));
+    document.documentElement.setAttribute("data-mode", live ? "live" : "waitlist");
+    document.addEventListener("DOMContentLoaded", function () {
+      document.querySelectorAll("[data-link]").forEach(function (a) {
+        a.href = (SITE.links || {})[a.getAttribute("data-link")] || "#";
+      });
+    });
+  })();
+</script>
+</head>
+<body>
+<div style="font-family: 'Lora', Georgia, serif; font-size: 17px; line-height: 1.6; color: #292929; background: #F0EAE5; display: flex; flex-direction: column">
+
+  <div aria-hidden="true" style="background: #E7E2DF; border-top: 2px solid #292929; border-bottom: 2px solid #292929; padding: 18px 20px; display: flex; justify-content: center; align-items: center; flex-wrap: wrap; gap: 12px 16px">
+    <span style="padding: 6px 18px; border: 2px solid #292929; border-radius: 999px; background: #828BC4; color: #1A1A1A; font-family: 'Lora', Georgia, serif; font-weight: 500; font-size: 17px">Recipes</span>
+    <span style="font-family: 'Playfair Display', Georgia, serif; font-size: 22px; color: #286552">→</span>
+    <span style="padding: 6px 18px; border: 2px solid #292929; border-radius: 999px; background: #A1D7E1; color: #1A1A1A; font-family: 'Lora', Georgia, serif; font-weight: 500; font-size: 17px">This Week</span>
+    <span style="font-family: 'Playfair Display', Georgia, serif; font-size: 22px; color: #286552">→</span>
+    <span style="padding: 6px 18px; border: 2px solid #292929; border-radius: 999px; background: #FCA44D; color: #1A1A1A; font-family: 'Lora', Georgia, serif; font-weight: 500; font-size: 17px">Shopping List</span>
+  </div>
+
+  <section style="padding: 76px 20px">
+    <div style="max-width: 1120px; margin: 0 auto">
+      <h2 style="margin: 0 0 40px; text-align: center; font-family: 'Playfair Display', Georgia, serif; font-weight: 700; font-size: clamp(1.8rem, 4vw, 2.6rem); line-height: 1.1">Loved by busy households</h2>
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 24px">
+        <figure style="margin: 0; padding: 28px; border: 2px solid #292929; border-radius: 16px; background: #828BC4; box-shadow: 5px 5px 0 #292929; display: flex; flex-direction: column; gap: 18px">
+          <span aria-hidden="true" style="font-family: 'Playfair Display', Georgia, serif; font-size: 52px; line-height: 0.6; color: #1A1A1A">“</span>
+          <blockquote style="margin: 0; font-size: 18px">We used to text each other photos of the fridge. Now we just open Lazy Larder and the list is already there.</blockquote>
+          <figcaption style="margin-top: auto; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 600; font-size: 13px; letter-spacing: 0.06em; text-transform: uppercase; color: #1A1A1A">[Customer name] · Household of two</figcaption>
+        </figure>
+        <figure style="margin: 0; padding: 28px; border: 2px solid #292929; border-radius: 16px; background: #A1D7E1; box-shadow: 5px 5px 0 #292929; display: flex; flex-direction: column; gap: 18px">
+          <span aria-hidden="true" style="font-family: 'Playfair Display', Georgia, serif; font-size: 52px; line-height: 0.6; color: #1A1A1A">“</span>
+          <blockquote style="margin: 0; font-size: 18px">Sunday planning takes ten minutes. Pick the meals, and the shopping list sorts itself into categories.</blockquote>
+          <figcaption style="margin-top: auto; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 600; font-size: 13px; letter-spacing: 0.06em; text-transform: uppercase; color: #1A1A1A">[Customer name] · Family of four</figcaption>
+        </figure>
+        <figure style="margin: 0; padding: 28px; border: 2px solid #292929; border-radius: 16px; background: #FCA44D; box-shadow: 5px 5px 0 #292929; display: flex; flex-direction: column; gap: 18px">
+          <span aria-hidden="true" style="font-family: 'Playfair Display', Georgia, serif; font-size: 52px; line-height: 0.6; color: #1A1A1A">“</span>
+          <blockquote style="margin: 0; font-size: 18px">All my favourite recipes from a dozen websites, finally in one place – and shared with my partner.</blockquote>
+          <figcaption style="margin-top: auto; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 600; font-size: 13px; letter-spacing: 0.06em; text-transform: uppercase; color: #1A1A1A">[Customer name] · Home cook</figcaption>
+        </figure>
+      </div>
+    </div>
+  </section>
+
+  <section style="padding: 80px 20px; background: #E7E2DF; border-top: 2px solid #292929; border-bottom: 2px solid #292929">
+    <div class="llb-feature" style="max-width: 1120px; margin: 0 auto">
+      <div>
+        <p style="margin: 0 0 12px; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 700; font-size: 13px; letter-spacing: 0.12em; text-transform: uppercase; color: #286552">Feature</p>
+        <h2 style="margin: 0 0 20px; font-family: 'Playfair Display', Georgia, serif; font-weight: 700; font-size: clamp(1.9rem, 4vw, 2.8rem); line-height: 1.1">Plan your meals. The list <span style="color: #286552">(literally)</span> writes itself.</h2>
+        <p style="margin: 0 0 14px">Add recipes to <strong>This Week</strong> and every ingredient you need is automatically added to your shared shopping list, scaled to the servings you need and grouped by category.</p>
+        <p style="margin: 0">Whoever's at the shop sees exactly what's needed. Tick things off and everyone sees it update, no more duplicates.</p>
+        <ul style="margin: 24px 0 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 12px">
+          <li style="display: flex; align-items: center; gap: 12px"><span aria-hidden="true" style="width: 24px; height: 24px; flex: none; display: inline-flex; align-items: center; justify-content: center; border-radius: 50%; background: #286552; color: #FFFFFF; font-weight: 700; font-size: 13px">✓</span>Ingredients combined across recipes</li>
+          <li style="display: flex; align-items: center; gap: 12px"><span aria-hidden="true" style="width: 24px; height: 24px; flex: none; display: inline-flex; align-items: center; justify-content: center; border-radius: 50%; background: #286552; color: #FFFFFF; font-weight: 700; font-size: 13px">✓</span>Regular items you buy every week, added in one tap</li>
+          <li style="display: flex; align-items: center; gap: 12px"><span aria-hidden="true" style="width: 24px; height: 24px; flex: none; display: inline-flex; align-items: center; justify-content: center; border-radius: 50%; background: #286552; color: #FFFFFF; font-weight: 700; font-size: 13px">✓</span>Synced through iCloud – no extra account to create</li>
+        </ul>
+        <div style="margin-top: 30px"><a class="llb-btn when-waitlist" href="#" data-link="waitlist" target="_blank" rel="noopener" style="display: inline-flex; align-items: center; justify-content: center; min-height: 52px; padding: 12px 28px; border: 2px solid #292929; border-radius: 12px; background: #286552; color: #FFFFFF; text-decoration: none; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 700; font-size: 17px; letter-spacing: 0.04em; text-transform: uppercase; box-shadow: 4px 4px 0 #292929">Join the waitlist →</a><a class="when-live" href="#" data-link="appStore" target="_blank" rel="noopener" style="display: inline-flex"><span style="display: inline-flex; align-items: center; min-height: 52px; padding: 0 20px; border-radius: 10px; background: #000000; color: #FFFFFF; font-family: -apple-system, 'Helvetica Neue', sans-serif; font-size: 15px; font-weight: 600">Download on the App Store</span></a></div>
+      </div>
+      <div style="justify-self: center; width: 100%; max-width: 360px; display: flex; flex-direction: column; gap: 16px; position: relative">
+        <span aria-hidden="true" style="position: absolute; top: -18px; right: -12px; z-index: 1; padding: 6px 12px; border: 2px solid #292929; border-radius: 999px; background: #D98BA0; color: #1A1A1A; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 700; font-size: 13px; letter-spacing: 0.04em; text-transform: uppercase; transform: rotate(4deg)">No more duplicates</span>
+        <div aria-hidden="true" style="width: 100%; box-sizing: border-box; padding: 22px; border: 2px solid #292929; border-radius: 24px; background: #FFFFFF; box-shadow: 8px 8px 0 #292929">
+          <p style="margin: 0 0 12px; font-family: 'Playfair Display', Georgia, serif; font-weight: 700; font-size: 22px">Shopping List</p>
+          <p style="margin: 14px 0 6px; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 600; font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase; color: #5F5A55">Fruit &amp; Veg</p>
+          <div style="display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid #D6D0CB; font-size: 15px; color: #5F5A55; text-decoration: line-through"><span style="width: 20px; height: 20px; flex: none; box-sizing: border-box; border-radius: 50%; border: 2px solid #286552; background: #286552"></span>2 red onions</div>
+          <div style="display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid #D6D0CB; font-size: 15px"><span style="width: 20px; height: 20px; flex: none; box-sizing: border-box; border-radius: 50%; border: 2px solid #286552"></span>3 carrots<span style="margin-left: auto; padding: 2px 8px; border-radius: 999px; background: #828BC4; color: #1A1A1A; font-size: 12px">Stew</span></div>
+          <div style="display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid #D6D0CB; font-size: 15px"><span style="width: 20px; height: 20px; flex: none; box-sizing: border-box; border-radius: 50%; border: 2px solid #286552"></span>1 red pepper<span style="margin-left: auto; padding: 2px 8px; border-radius: 999px; background: #828BC4; color: #1A1A1A; font-size: 12px">Fajitas</span></div>
+          <p style="margin: 14px 0 6px; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 600; font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase; color: #5F5A55">Dairy</p>
+          <div style="display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid #D6D0CB; font-size: 15px"><span style="width: 20px; height: 20px; flex: none; box-sizing: border-box; border-radius: 50%; border: 2px solid #286552"></span>Milk</div>
+          <div style="display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid #D6D0CB; font-size: 15px; color: #5F5A55; text-decoration: line-through"><span style="width: 20px; height: 20px; flex: none; box-sizing: border-box; border-radius: 50%; border: 2px solid #286552; background: #286552"></span>200g cheddar</div>
+          <p style="margin: 14px 0 6px; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 600; font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase; color: #5F5A55">Cupboard</p>
+          <div style="display: flex; align-items: center; gap: 10px; padding: 8px 0; font-size: 15px"><span style="width: 20px; height: 20px; flex: none; box-sizing: border-box; border-radius: 50%; border: 2px solid #286552"></span>Chopped tomatoes ×2<span style="margin-left: auto; padding: 2px 8px; border-radius: 999px; background: #828BC4; color: #1A1A1A; font-size: 12px">Stew</span></div>
+        </div>
+        <p style="margin: 0; font-size: 13px; line-height: 1.5; color: #5F5A55; text-align: center">Illustration for clarity. The actual app view varies – for example, ticked items are hidden.</p>
+      </div>
+    </div>
+  </section>
+
+  <section style="background: #286552; color: #FFFFFF; padding: 80px 20px; border-bottom: 2px solid #292929">
+    <div style="max-width: 760px; margin: 0 auto; display: flex; flex-direction: column; align-items: center; gap: 20px; text-align: center">
+      <h2 class="when-waitlist" style="margin: 0; font-family: 'Playfair Display', Georgia, serif; font-weight: 700; font-size: clamp(2rem, 4.5vw, 3rem); line-height: 1.1">Be the first to make your weekly food planning a breeze</h2><h2 class="when-live" style="margin: 0; font-family: 'Playfair Display', Georgia, serif; font-weight: 700; font-size: clamp(2rem, 4.5vw, 3rem); line-height: 1.1">Make your weekly food planning a breeze</h2>
+      <p class="when-waitlist" style="margin: 0; font-size: 18px; color: #E4EEEA">Join the waitlist and we'll let you know as soon as Lazy Larder is on the App Store. It's coming very soon.</p><p class="when-live" style="margin: 0; font-size: 18px; color: #E4EEEA">Download Lazy Larder from the App Store and get your household planning together.</p>
+      <a class="llb-btn when-waitlist" href="#" data-link="waitlist" target="_blank" rel="noopener" style="display: inline-flex; align-items: center; justify-content: center; min-height: 52px; padding: 12px 30px; border: 2px solid #1A1A1A; border-radius: 12px; background: #FCA44D; color: #1A1A1A; text-decoration: none; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 700; font-size: 17px; letter-spacing: 0.04em; text-transform: uppercase; box-shadow: 4px 4px 0 #1A1A1A">Join the waitlist →</a><a class="when-live" href="#" data-link="appStore" target="_blank" rel="noopener" style="display: inline-flex"><span style="display: inline-flex; align-items: center; min-height: 52px; padding: 0 20px; border-radius: 10px; background: #000000; color: #FFFFFF; font-family: -apple-system, 'Helvetica Neue', sans-serif; font-size: 15px; font-weight: 600">Download on the App Store</span></a>
+    </div>
+  </section>
+
+  <section aria-label="Frequently asked questions" style="padding: 56px 20px 64px">
+    <div style="max-width: 740px; margin: 0 auto">
+      <h2 style="margin: 0 0 18px; font-family: 'Playfair Display', Georgia, serif; font-weight: 700; font-size: 26px">FAQs</h2>
+      <div style="border-top: 2px solid #292929">
+        <!-- faqs:start – filled from LazyLarder/FAQContent.swift by build.py -->
+        <details style="border-bottom: 2px solid #292929; padding: 13px 0">
+          <summary style="cursor: pointer; list-style: none; display: flex; justify-content: space-between; gap: 16px; font-size: 16px; font-weight: 500">Does Lazy Larder use AI?<span class="llb-plus" aria-hidden="true" style="flex: none; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 700; font-size: 20px; line-height: 1; color: #286552; transition: transform .15s ease">+</span></summary>
+          <p style="margin: 10px 0 4px; font-size: 15px; color: #3D3935">NO! Whilst almost all of the apps and programmes around us scramble to add (usually) annoying AI features, we know there's a time and a place for that. And we don't think it's in Lazy Larder.</p>
+        </details>
+        <details style="border-bottom: 2px solid #292929; padding: 13px 0">
+          <summary style="cursor: pointer; list-style: none; display: flex; justify-content: space-between; gap: 16px; font-size: 16px; font-weight: 500">Is there an easy way to share a recipe with someone who's not in my household?<span class="llb-plus" aria-hidden="true" style="flex: none; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 700; font-size: 20px; line-height: 1; color: #286552; transition: transform .15s ease">+</span></summary>
+          <p style="margin: 10px 0 4px; font-size: 15px; color: #3D3935">Yes! We are glad you asked. It's really easy. First, they need to download the app, if they haven't already. Next you open the recipe you want to share, click the paper aeroplane icon and generate the code. In their app, in the recipes section, they can click the + icon and enter your code into the 'Enter a Shared Recipe Code' box, and just like magic it will appear on their phone. The codes are designed to be simple to share, 3 digits, food related word, 3 digits. Delicious recipes are made for sharing aren't they?</p>
+        </details>
+        <details style="border-bottom: 2px solid #292929; padding: 13px 0">
+          <summary style="cursor: pointer; list-style: none; display: flex; justify-content: space-between; gap: 16px; font-size: 16px; font-weight: 500">When I add a recipe with a link, why do the steps not transfer across too?<span class="llb-plus" aria-hidden="true" style="flex: none; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 700; font-size: 20px; line-height: 1; color: #286552; transition: transform .15s ease">+</span></summary>
+          <p style="margin: 10px 0 4px; font-size: 15px; color: #3D3935">Lazy Larder benefits massively from the hundreds of websites that share great recipes. LL doesn’t have any ambition to replace those websites. Rather, we want to help you find an easier way to store your favourite recipes, and build and maintain your weekly shopping list. There are plenty of ways within LL to add the steps from recipes you want to adapt, keep on hand, or create from scratch.</p>
+        </details>
+        <details style="border-bottom: 2px solid #292929; padding: 13px 0">
+          <summary style="cursor: pointer; list-style: none; display: flex; justify-content: space-between; gap: 16px; font-size: 16px; font-weight: 500">Why is this called Lazy Larder? I'm not lazy!<span class="llb-plus" aria-hidden="true" style="flex: none; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 700; font-size: 20px; line-height: 1; color: #286552; transition: transform .15s ease">+</span></summary>
+          <p style="margin: 10px 0 4px; font-size: 15px; color: #3D3935">You are definitely not lazy. Anyone taking a step like this to plan ahead for themselves or their household clearly has their stuff together. The hope is that Lazy Larder will make planning your weekly meals and building your shopping list so much easier that your larder will become lazy – but you won’t! Also… who doesn’t love a bit of alliteration?</p>
+        </details>
+        <details style="border-bottom: 2px solid #292929; padding: 13px 0">
+          <summary style="cursor: pointer; list-style: none; display: flex; justify-content: space-between; gap: 16px; font-size: 16px; font-weight: 500">When will I be able to get Lazy Larder on an Android phone?<span class="llb-plus" aria-hidden="true" style="flex: none; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 700; font-size: 20px; line-height: 1; color: #286552; transition: transform .15s ease">+</span></summary>
+          <p style="margin: 10px 0 4px; font-size: 15px; color: #3D3935">Great question. Lazy larder was created, and is maintained by a husband and wife duo, Ross and Amanda. They built it to help solve their own meal planning and shopping list problems, and as they both have iPhones, iOS offered the perfect platform for sharing. We’re looking into the option of building an Android version, but to be very honest, as we always are, we want to get the iOS version right first.</p>
+        </details>
+        <details style="border-bottom: 2px solid #292929; padding: 13px 0">
+          <summary style="cursor: pointer; list-style: none; display: flex; justify-content: space-between; gap: 16px; font-size: 16px; font-weight: 500">Why can't I share my shopping list with someone with an Android phone?<span class="llb-plus" aria-hidden="true" style="flex: none; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 700; font-size: 20px; line-height: 1; color: #286552; transition: transform .15s ease">+</span></summary>
+          <p style="margin: 10px 0 4px; font-size: 15px; color: #3D3935">It’s worth taking a look at our other FAQ about Android phones, but to build on that here, Android and Apple phones don’t get on. They’re terrible at sharing with each other. For now, we’re putting our energy and attention into ensuring the iOS app is as good as it can be, but we would really love everyone to be able to access and share Lazy Larder with everyone in their household, regardless of what phone or tablet they have. We’ll keep working on it!</p>
+        </details>
+        <details style="border-bottom: 2px solid #292929; padding: 13px 0">
+          <summary style="cursor: pointer; list-style: none; display: flex; justify-content: space-between; gap: 16px; font-size: 16px; font-weight: 500">Does Lazy Larder work on an iPad?<span class="llb-plus" aria-hidden="true" style="flex: none; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 700; font-size: 20px; line-height: 1; color: #286552; transition: transform .15s ease">+</span></summary>
+          <p style="margin: 10px 0 4px; font-size: 15px; color: #3D3935">Yes it does! Here’s a fun story: Ross and Amanda own an aging iPad (circa 2018), so they built Lazy Larder to work on its older software. Whilst we can’t guarantee that Apple won’t make changes which will mean Lazy Larder no longer works for our antique device (!), It means the app should work happily for newer iPads. The iPad you add Lazy Larder to will function in the same way as an iPhone, so if you’re part of a household of two or more people, you’ll get the same shared perspective. Pretty neat, eh? One final (sad) detail here: there’s a sensor on iPhones that don’t exist on iPads, so the cook mode doesn’t recognise the fun hands-free wax-on wax-off karate moves for advancing your recipes. We really wish it did!</p>
+        </details>
+        <details style="border-bottom: 2px solid #292929; padding: 13px 0">
+          <summary style="cursor: pointer; list-style: none; display: flex; justify-content: space-between; gap: 16px; font-size: 16px; font-weight: 500">Do I need to be logged into iCloud for Lazy Larder?<span class="llb-plus" aria-hidden="true" style="flex: none; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 700; font-size: 20px; line-height: 1; color: #286552; transition: transform .15s ease">+</span></summary>
+          <p style="margin: 10px 0 4px; font-size: 15px; color: #3D3935">Yes. Without being logged in, you’ll miss out on all the really powerful features of Lazy Larder. We chose iCloud for a couple of reasons: excellent privacy for you, and great sharing across devices. You’ll notice we didn’t ask for an email address or password to sign in. Apple keeps your identity hidden in the back end of Lazy Larder, because it all goes through iCloud. As for sharing, it means that you can see everything your fellow householder(s) can see, if you’ve shared your account. One little iCloud login means that you can pick recipes, and have a shared shopping list that updates anytime any of you makes a change. Not bad, in our humble opinion!</p>
+        </details>
+        <!-- faqs:end -->
+      </div>
+    </div>
+  </section>
+
+  <footer style="background: #292929; color: #F0EAE5; padding: 28px 20px; font-size: 15px">
+    <div style="max-width: 1120px; margin: 0 auto; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 16px">
+      <span style="font-family: 'Playfair Display', Georgia, serif; font-weight: 700">© Lazy Larder</span>
+      <nav aria-label="Site links" style="display: flex; flex-wrap: wrap; align-items: center; gap: 4px 24px">
+        <a href="#" data-link="about" target="_blank" rel="noopener" style="display: inline-flex; align-items: center; min-height: 44px; color: #F0EAE5">About</a>
+        <a href="#" data-link="privacy" target="_blank" rel="noopener" style="display: inline-flex; align-items: center; min-height: 44px; color: #F0EAE5">Privacy Policy</a>
+      </nav>
+      <span>Meal planning for the whole household</span>
+    </div>
+  </footer>
+  
+</div>
+</body>
+</html>

@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lazy Larder</title>
+<meta name="description" content="Collect recipes, plan your weekly meals, and automate your shopping list – all shared with others in your household.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&amp;family=Lora:wght@400;500&amp;family=Playfair+Display:wght@600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#F0EAE5}
+a{color:#286552}a:hover{color:#1d4b3d}
+.llb-hero{display:grid;grid-template-columns:repeat(2, minmax(0, 1fr));gap:56px;align-items:center}
+.llb-feature{display:grid;grid-template-columns:repeat(2, minmax(0, 1fr));gap:56px;align-items:center}
+.llb-btn{transition:transform .12s ease, box-shadow .12s ease}
+.llb-btn:hover{transform:translate(-1px,-1px);box-shadow:5px 5px 0 #1A1A1A}
+details summary::-webkit-details-marker{display:none}
+details[open] .llb-plus{transform:rotate(45deg)}
+html[data-mode="live"] .when-waitlist{display:none !important}
+html:not([data-mode="live"]) .when-live{display:none !important}
+@media (max-width: 760px){.llb-hero,.llb-feature{grid-template-columns:minmax(0, 1fr);gap:40px}}
+</style>
+<script>
+  /* Filled from site-config.json by build.py – edit that file, not this line. */
+  var SITE = {"mode": "waitlist", "launchAt": "", "links": {"waitlist": "#", "appStore": "#", "about": "#", "privacy": "#"}};
+  (function () {
+    var live = SITE.mode === "live" || (!!SITE.launchAt && Date.now() >= Date.parse(SITE.launchAt));
+    document.documentElement.setAttribute("data-mode", live ? "live" : "waitlist");
+    document.addEventListener("DOMContentLoaded", function () {
+      document.querySelectorAll("[data-link]").forEach(function (a) {
+        a.href = (SITE.links || {})[a.getAttribute("data-link")] || "#";
+      });
+    });
+  })();
+</script>
+</head>
+<body>
+<div style="font-family: 'Lora', Georgia, serif; font-size: 17px; line-height: 1.6; color: #292929; background: #F0EAE5; display: flex; flex-direction: column">
+<div style="min-height: 100vh; box-sizing: border-box; padding: 24px 20px; display: flex; align-items: center">
+      <div style="display: flex; flex-direction: column; align-items: flex-start; gap: 24px">
+        <span class="when-waitlist" style="display: inline-block; padding: 4px 12px; border: 2px solid #292929; border-radius: 999px; background: #A1D7E1; color: #1A1A1A; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 700; font-size: 13px; letter-spacing: 0.06em; text-transform: uppercase">Coming soon to iPhone &amp; iPad</span><span class="when-live" style="display: inline-block; padding: 4px 12px; border: 2px solid #292929; border-radius: 999px; background: #A1D7E1; color: #1A1A1A; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 700; font-size: 13px; letter-spacing: 0.06em; text-transform: uppercase">Now on iPhone &amp; iPad</span>
+        <h1 style="margin: 0; font-family: 'Playfair Display', Georgia, serif; font-weight: 700; font-size: clamp(2.3rem, 5vw, 3.8rem); line-height: 1.05; letter-spacing: -0.01em; color: #292929">Managing your weekly shopping, made easy with <span style="white-space: nowrap; color: #286552; background: linear-gradient(transparent 62%, #FCA44D 62%, #FCA44D 92%, transparent 92%)">Lazy Larder</span></h1>
+        <p style="margin: 0; max-width: 36ch; font-size: 20px">Collect recipes, plan your weekly meals, and automate your shopping list – all shared with others in your household.</p>
+        <p class="when-waitlist" style="margin: 0; max-width: 44ch; font-size: 16px; color: #5F5A55">Lazy Larder is currently being tested with friends and family. Join the waitlist and we'll let you know the moment it's ready for you.</p><p class="when-live" style="margin: 0; max-width: 44ch; font-size: 16px; color: #5F5A55">Lazy Larder is out now on the App Store for iPhone and iPad.</p>
+        <a class="llb-btn when-waitlist" href="#" data-link="waitlist" target="_blank" rel="noopener" style="display: inline-flex; align-items: center; justify-content: center; min-height: 52px; padding: 12px 30px; border: 2px solid #292929; border-radius: 12px; background: #286552; color: #FFFFFF; text-decoration: none; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 700; font-size: 17px; letter-spacing: 0.04em; text-transform: uppercase; box-shadow: 4px 4px 0 #292929">Join the waitlist →</a><a class="when-live" href="#" data-link="appStore" target="_blank" rel="noopener" style="display: inline-flex"><span style="display: inline-flex; align-items: center; min-height: 52px; padding: 0 20px; border-radius: 10px; background: #000000; color: #FFFFFF; font-family: -apple-system, 'Helvetica Neue', sans-serif; font-size: 15px; font-weight: 600">Download on the App Store</span></a>
+      </div>
+      </div>
+</div>
+</body>
+</html>
