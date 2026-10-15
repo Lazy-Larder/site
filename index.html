@@ -23,7 +23,7 @@ html:not([data-mode="live"]) .when-live{display:none !important}
 </style>
 <script>
   /* Filled from site-config.json by build.py – edit that file, not this line. */
-  var SITE = {"mode": "waitlist", "launchAt": "", "links": {"waitlist": "#", "appStore": "#", "about": "#", "privacy": "#"}};
+  var SITE = {"mode": "waitlist", "launchAt": "", "links": {"waitlist": "https://mailchi.mp/91ec97101585/lazy-larder-waitlist", "appStore": "#", "about": "#", "privacy": "#"}};
   (function () {
     var live = SITE.mode === "live" || (!!SITE.launchAt && Date.now() >= Date.parse(SITE.launchAt));
     document.documentElement.setAttribute("data-mode", live ? "live" : "waitlist");
