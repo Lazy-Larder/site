@@ -206,20 +206,19 @@ textarea,input[type=text]{font-family:'Lora',Georgia,serif;font-size:16px;width:
     document.getElementById("ll-submit").addEventListener("click", function () { submitComment(parentId); });
     if (!savedName && knownIsStaff) {
       var nameEl = document.getElementById("ll-name");
-      if (knownSuggestedName) {
-        // The exact name whoever verified this identity already typed -
-        // ready to post as-is, still editable if it needs a tweak.
-        nameEl.value = knownSuggestedName;
-        nameEl.focus();
-        nameEl.setSelectionRange(knownSuggestedName.length, knownSuggestedName.length);
-      } else {
-        // Fallback: no suggested name on file, just the cursor sitting
-        // right before " @ LazyLarder" so typing a name slots in ahead
-        // of it, landing on the required format either way.
-        nameEl.value = " @ LazyLarder";
-        nameEl.focus();
-        nameEl.setSelectionRange(0, 0);
-      }
+      var prefill = knownSuggestedName || " @ LazyLarder";
+      nameEl.value = prefill;
+      // Cursor position is only set once the field is actually tapped,
+      // not via a scripted .focus() call here - calling .focus() on a
+      // field that already has text can trigger iOS Safari's
+      // selection/AutoFill callout automatically, as if it had been
+      // long-pressed. Positioning it in response to a real tap avoids
+      // that while keeping the same convenience.
+      nameEl.addEventListener("focus", function onFirstFocus() {
+        nameEl.removeEventListener("focus", onFirstFocus);
+        var pos = knownSuggestedName ? prefill.length : 0;
+        nameEl.setSelectionRange(pos, pos);
+      });
     }
   }
 
