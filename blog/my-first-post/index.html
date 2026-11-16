@@ -139,7 +139,11 @@ textarea,input[type=text]{font-family:'Lora',Georgia,serif;font-size:16px;width:
     var verifiedBadge = STAFF_NAME_PATTERN.test(c.author_name)
       ? '<span style="display:inline-block;margin-left:6px;padding:1px 8px;border-radius:999px;background:#286552;color:#FFFFFF;font-family:\'Bricolage Grotesque\',sans-serif;font-size:11px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;vertical-align:1px">✓ Verified Admin</span>'
       : '';
-    var actions = (isReply ? '' : '<button class="ll-btn" style="margin-top:6px;padding:4px 10px;font-size:12px" data-reply-to="' + c.id + '">Reply</button>') +
+    // Shown on every comment, reply or not - the Worker already
+    // flattens a reply-to-a-reply onto the original top-level comment
+    // (`parentId = parent.parent_id ?? parent.id`), so there's nothing
+    // stopping someone replying from here, just no button offering it.
+    var actions = '<button class="ll-btn" style="margin-top:6px;padding:4px 10px;font-size:12px" data-reply-to="' + c.id + '">Reply</button>' +
       // Only ever rendered when the Worker's own check already confirmed
       // this viewer is verified staff - the click itself is checked
       // again server-side regardless, same as every other write here.
