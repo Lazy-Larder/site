@@ -134,11 +134,27 @@ textarea,input[type=text]{font-family:'Lora',Georgia,serif;font-size:16px;width:
   // needed to safely badge it here.
   var STAFF_NAME_PATTERN = /^.+ @ LazyLarder$/;
 
+  // Which comment (if any) is currently showing its inline edit form -
+  // toggling this just re-renders from the already-fetched `lastComments`
+  // cache below, no round trip needed just to open/close the editor.
+  var editingCommentId = null;
+  var lastComments = [];
+  var lastIsStaff = false;
+
   function commentHtml(c, isReply, isStaff) {
     var when = new Date(c.created_at * 1000).toLocaleString("en-GB", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
     var verifiedBadge = STAFF_NAME_PATTERN.test(c.author_name)
       ? '<span style="display:inline-block;margin-left:6px;padding:1px 8px;border-radius:999px;background:#286552;color:#FFFFFF;font-family:\'Bricolage Grotesque\',sans-serif;font-size:11px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;vertical-align:1px">✓ Verified Admin</span>'
       : '';
+    if (editingCommentId === c.id) {
+      return '<div class="ll-comment' + (isReply ? ' reply' : '') + '">' +
+        '<div class="author">' + escapeHtml(c.author_name) + verifiedBadge + '</div>' +
+        '<div class="when">' + when + '</div>' +
+        '<textarea id="ll-edit-text-' + c.id + '" rows="3">' + escapeHtml(c.body) + '</textarea>' +
+        '<button class="ll-btn" style="margin-top:6px;padding:4px 10px;font-size:12px" data-save-edit="' + c.id + '">Save</button>' +
+        '<button class="ll-btn" style="margin-top:6px;margin-left:6px;padding:4px 10px;font-size:12px" data-cancel-edit="' + c.id + '">Cancel</button>' +
+        '</div>';
+    }
     // Shown on every comment, reply or not - the Worker already
     // flattens a reply-to-a-reply onto the original top-level comment
     // (`parentId = parent.parent_id ?? parent.id`), so there's nothing
@@ -147,7 +163,11 @@ textarea,input[type=text]{font-family:'Lora',Georgia,serif;font-size:16px;width:
       // Only ever rendered when the Worker's own check already confirmed
       // this viewer is verified staff - the click itself is checked
       // again server-side regardless, same as every other write here.
-      (isStaff ? '<button class="ll-btn" style="margin-top:6px;margin-left:6px;padding:4px 10px;font-size:12px;color:#994B24" data-remove-id="' + c.id + '">Remove</button>' : '');
+      (isStaff ? '<button class="ll-btn" style="margin-top:6px;margin-left:6px;padding:4px 10px;font-size:12px;color:#994B24" data-remove-id="' + c.id + '">Remove</button>' : '') +
+      // `is_mine` is computed server-side from the identity hash behind
+      // the token - only ever true for the verified identity that
+      // actually wrote this specific comment, never any other admin's.
+      (isStaff && c.is_mine ? '<button class="ll-btn" style="margin-top:6px;margin-left:6px;padding:4px 10px;font-size:12px" data-edit-id="' + c.id + '">Edit</button>' : '');
     return '<div class="ll-comment' + (isReply ? ' reply' : '') + '">' +
       '<div class="author">' + escapeHtml(c.author_name) + verifiedBadge + '</div>' +
       '<div class="when">' + when + '</div>' +
@@ -157,6 +177,8 @@ textarea,input[type=text]{font-family:'Lora',Georgia,serif;font-size:16px;width:
   }
 
   function renderComments(comments, isStaff) {
+    lastComments = comments;
+    lastIsStaff = isStaff;
     var top = comments.filter(function (c) { return !c.parent_id; });
     var repliesByParent = {};
     comments.filter(function (c) { return c.parent_id; }).forEach(function (c) {
@@ -175,6 +197,42 @@ textarea,input[type=text]{font-family:'Lora',Georgia,serif;font-size:16px;width:
     });
     el.querySelectorAll("[data-remove-id]").forEach(function (btn) {
       btn.addEventListener("click", function () { removeComment(Number(btn.dataset.removeId)); });
+    });
+    el.querySelectorAll("[data-edit-id]").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        editingCommentId = Number(btn.dataset.editId);
+        renderComments(lastComments, lastIsStaff);
+      });
+    });
+    el.querySelectorAll("[data-cancel-edit]").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        editingCommentId = null;
+        renderComments(lastComments, lastIsStaff);
+      });
+    });
+    el.querySelectorAll("[data-save-edit]").forEach(function (btn) {
+      btn.addEventListener("click", function () { saveCommentEdit(Number(btn.dataset.saveEdit)); });
+    });
+  }
+
+  function saveCommentEdit(commentId) {
+    var text = document.getElementById("ll-edit-text-" + commentId).value.trim();
+    if (!text) return;
+    fetch(API_BASE + "/api/posts/" + slug + "/comments/" + commentId + "/edit", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token: effectiveToken, body: text }),
+    }).then(function (res) {
+      return res.json().then(function (data) { return { ok: res.ok, data: data }; });
+    }).then(function (result) {
+      if (!result.ok) {
+        window.alert(result.data.error || "Couldn't save that edit.");
+        return;
+      }
+      editingCommentId = null;
+      loadComments();
+    }).catch(function () {
+      window.alert("Couldn't reach the server - try again in a moment.");
     });
   }
 
