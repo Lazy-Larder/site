@@ -100,6 +100,11 @@ textarea,input[type=text]{font-family:'Lora',Georgia,serif;font-size:16px;width:
   var token = params.get("token");
   if (token) { try { sessionStorage.setItem("ll_token", token); } catch (e) {} }
   var effectiveToken = token || (function () { try { return sessionStorage.getItem("ll_token"); } catch (e) { return null; } })();
+  // Set once loadComments() hears back from the Worker - lets a
+  // verified identity's first comment form start pre-filled with the
+  // " @ LazyLarder" suffix, rather than them having to remember and
+  // type the exact house format themselves.
+  var knownIsStaff = false;
 
   // Likes are open to anyone, unlike comments - this id proves
   // nothing and isn't meant to; it just lets clicking Like twice
@@ -197,6 +202,16 @@ textarea,input[type=text]{font-family:'Lora',Georgia,serif;font-size:16px;width:
       '<button class="ll-btn" id="ll-submit">' + (parentId ? "Post reply" : "Post comment") + '</button>' +
       '<p class="ll-note" id="ll-form-error" style="display:none;color:#994B24"></p>';
     document.getElementById("ll-submit").addEventListener("click", function () { submitComment(parentId); });
+    if (!savedName && knownIsStaff) {
+      // Pre-filled with the cursor sitting right before " @ LazyLarder" -
+      // typing a name then just slots in ahead of it, landing on the
+      // exact format the Worker requires without anyone needing to
+      // remember or type it themselves.
+      var nameEl = document.getElementById("ll-name");
+      nameEl.value = " @ LazyLarder";
+      nameEl.focus();
+      nameEl.setSelectionRange(0, 0);
+    }
   }
 
   function submitComment(parentId) {
@@ -232,7 +247,8 @@ textarea,input[type=text]{font-family:'Lora',Georgia,serif;font-size:16px;width:
   function loadComments() {
     var url = API_BASE + "/api/posts/" + slug + "/comments" + (effectiveToken ? "?token=" + encodeURIComponent(effectiveToken) : "");
     fetch(url).then(function (r) { return r.json(); }).then(function (data) {
-      renderComments(data.comments || [], !!data.isStaff);
+      knownIsStaff = !!data.isStaff;
+      renderComments(data.comments || [], knownIsStaff);
       showCommentForm(null);
     });
   }
