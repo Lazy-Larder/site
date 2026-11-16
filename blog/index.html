@@ -66,6 +66,15 @@ a{color:#286552}a:hover{color:#1d4b3d}
 
 </div>
 <script>
+// Relays an incoming app token into sessionStorage, same as
+// blog-post.html does - so clicking through from here into any post
+// still arrives already verified, rather than the app-origin signal
+// getting dropped the moment someone leaves this index page.
+(function () {
+  var token = new URLSearchParams(location.search).get("token");
+  if (token) { try { sessionStorage.setItem("ll_token", token); } catch (e) {} }
+})();
+
 // Title/teaser/tag search over the already-rendered cards - no
 // fetch, no backend, since everything it needs to match against is
 // already sitting in each card's own data-search attribute.
