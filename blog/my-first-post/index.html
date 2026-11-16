@@ -215,13 +215,28 @@ textarea,input[type=text]{font-family:'Lora',Georgia,serif;font-size:16px;width:
   }
 
   document.getElementById("ll-like-btn").addEventListener("click", function () {
+    var btn = document.getElementById("ll-like-btn");
+    btn.disabled = true;
     fetch(API_BASE + "/api/posts/" + slug + "/like", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ anonId: anonId() }),
-    }).then(function (r) { return r.json(); }).then(function (data) {
-      document.getElementById("ll-like-count").textContent = data.count || 0;
-      document.getElementById("ll-like-btn").classList.toggle("liked", !!data.liked);
+    }).then(function (res) {
+      return res.json().then(function (data) { return { ok: res.ok, data: data }; });
+    }).then(function (result) {
+      btn.disabled = false;
+      // A failed request left the count/style untouched before -
+      // nothing visibly happened, which looked exactly like a
+      // non-functioning button rather than a request that failed.
+      if (!result.ok) {
+        console.error("Like failed:", result.data.error || result);
+        return;
+      }
+      document.getElementById("ll-like-count").textContent = result.data.count || 0;
+      btn.classList.toggle("liked", !!result.data.liked);
+    }).catch(function (err) {
+      btn.disabled = false;
+      console.error("Like request couldn't reach the server:", err);
     });
   });
 
