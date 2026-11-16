@@ -5,7 +5,9 @@
       "title": "Your Post Title - a practice attempt at Lazy Larder blogs!",
       "date": "2026-11-16",
       "teaser": "A one-line summary shown on the blog index and in the app.",
-      "tags": []
+      "tags": [
+        "Behind the scenes"
+      ]
     }
   ]
 }
