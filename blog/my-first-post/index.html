@@ -33,7 +33,7 @@ textarea,input[type=text]{font-family:'Lora',Georgia,serif;font-size:16px;width:
 .ll-comment.reply{margin-left:28px}
 .ll-comment .author{font-weight:700}
 .ll-comment .when{color:#6B6560;font-size:13px}
-.ll-card{border:2px solid #292929;border-radius:14px;background:#FFFFFF;padding:18px 20px;box-shadow:5px 5px 0 #286552}
+.ll-card{display:flow-root;clear:both;border:2px solid #292929;border-radius:14px;background:#FFFFFF;padding:18px 20px;box-shadow:5px 5px 0 #286552}
 .ll-note{color:#6B6560;font-size:14px}
 </style>
 </head>
@@ -57,7 +57,7 @@ textarea,input[type=text]{font-family:'Lora',Georgia,serif;font-size:16px;width:
 <h2 style="margin: 0; font-family: 'Playfair Display', Georgia, serif; font-weight: 700; font-size: 26px; line-height: 1.2">A subheading, if you want one</h2>
 <ul style="margin: 0; padding-left: 22px; display: flex; flex-direction: column; gap: 8px"><li>bullet</li><li>points</li><li>work too</li></ul>
 <p style="margin: 0"><strong>Bold text</strong>, and <a href="https://example.com">a link</a>, both work the same way.</p>
-<p style="margin: 0"><figure style="max-width: min(200px, 100%); width: fit-content; display: block; margin: 4px auto 14px 0;"><img src="3099B4ED-1E11-4B2A-90A9-3040FABCF970_1_105_c.jpeg" alt="One of the dishes I&#x27;ve been cooking for the longest time, Tuna Risotto" style="display: block; width: 100%;"></figure></p>
+<p style="margin: 0"><figure style="max-width: min(200px, 100%); width: fit-content; display: block; margin: 4px auto 14px 0;"><img src="3099B4ED-1E11-4B2A-90A9-3040FABCF970_1_105_c.jpeg" alt="One of the dishes I&#x27;ve been cooking for the longest time, Tuna Risotto" style="display: block; width: 100%;" loading="lazy" decoding="async"></figure></p>
 </section>
     <div class="ll-card ll-body">
       <button class="ll-btn" id="ll-like-btn">🥕 Like (<span id="ll-like-count">0</span>)</button>
@@ -156,8 +156,15 @@ textarea,input[type=text]{font-family:'Lora',Georgia,serif;font-size:16px;width:
     }
     var savedName = "";
     try { savedName = localStorage.getItem("ll_comment_name") || ""; } catch (e) {}
+    // Once a name's been used from this device, it's locked server-side
+    // anyway (one identity, one name) - showing it as fixed text here
+    // instead of an editable field means a different name never even
+    // gets as far as the error the Worker would otherwise return.
+    var nameField = savedName
+      ? '<p class="ll-note">Commenting as <strong>' + escapeHtml(savedName) + '</strong></p>'
+      : '<input type="text" id="ll-name" placeholder="Your name">';
     area.innerHTML =
-      '<input type="text" id="ll-name" placeholder="Your name" value="' + escapeHtml(savedName) + '">' +
+      nameField +
       '<textarea id="ll-text" rows="3" placeholder="' + (parentId ? "Write a reply…" : "Write a comment…") + '"></textarea>' +
       '<button class="ll-btn" id="ll-submit">' + (parentId ? "Post reply" : "Post comment") + '</button>' +
       '<p class="ll-note" id="ll-form-error" style="display:none;color:#994B24"></p>';
@@ -165,7 +172,10 @@ textarea,input[type=text]{font-family:'Lora',Georgia,serif;font-size:16px;width:
   }
 
   function submitComment(parentId) {
-    var name = document.getElementById("ll-name").value.trim();
+    var nameInput = document.getElementById("ll-name");
+    var name = nameInput ? nameInput.value.trim() : (function () {
+      try { return localStorage.getItem("ll_comment_name") || ""; } catch (e) { return ""; }
+    })();
     var body = document.getElementById("ll-text").value.trim();
     var errEl = document.getElementById("ll-form-error");
     errEl.style.display = "none";
@@ -230,7 +240,12 @@ textarea,input[type=text]{font-family:'Lora',Georgia,serif;font-size:16px;width:
       fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: payload, keepalive: true });
     }
   }
-  window.addEventListener("scroll", function () {
+  // Coalesced to one check per animation frame - scroll fires far more
+  // often than that, and each check reads layout (scrollHeight), so an
+  // unthrottled listener does a lot of needless work on a long page.
+  var scrollCheckQueued = false;
+  function checkScrollDepth() {
+    scrollCheckQueued = false;
     var scrolled = (window.scrollY + window.innerHeight) / document.documentElement.scrollHeight * 100;
     milestones.forEach(function (m) {
       if (scrolled >= m && deepestMilestone < m) {
@@ -238,6 +253,11 @@ textarea,input[type=text]{font-family:'Lora',Georgia,serif;font-size:16px;width:
         sendEvent("scroll_depth", m);
       }
     });
+  }
+  window.addEventListener("scroll", function () {
+    if (scrollCheckQueued) return;
+    scrollCheckQueued = true;
+    requestAnimationFrame(checkScrollDepth);
   }, { passive: true });
   document.addEventListener("copy", function () { sendEvent("copy", null); });
   var pageOpenedAt = Date.now();
