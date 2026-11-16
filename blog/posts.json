@@ -1,3 +1,13 @@
 {
-  "posts": []
+  "posts": [
+    {
+      "slug": "my-first-post",
+      "title": "A practice blog!",
+      "date": "2026-11-16",
+      "teaser": "A one-line summary shown on the blog index and in the app.",
+      "tags": [
+        "Behind the scenes"
+      ]
+    }
+  ]
 }
