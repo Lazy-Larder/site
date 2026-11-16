@@ -128,15 +128,24 @@ textarea,input[type=text]{font-family:'Lora',Georgia,serif;font-size:16px;width:
     return s.replace(/[&<>"']/g, function (c) { return ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]; });
   }
 
+  // Exactly the Worker's own STAFF_NAME_PATTERN - the Worker refuses
+  // this format to anyone not in verified_staff, so a comment that got
+  // through with it is already guaranteed genuine; no extra check
+  // needed to safely badge it here.
+  var STAFF_NAME_PATTERN = /^.+ @ LazyLarder$/;
+
   function commentHtml(c, isReply, isStaff) {
     var when = new Date(c.created_at * 1000).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+    var verifiedBadge = STAFF_NAME_PATTERN.test(c.author_name)
+      ? '<span style="display:inline-block;margin-left:6px;padding:1px 8px;border-radius:999px;background:#286552;color:#FFFFFF;font-family:\'Bricolage Grotesque\',sans-serif;font-size:11px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;vertical-align:1px">✓ Verified</span>'
+      : '';
     var actions = (isReply ? '' : '<button class="ll-btn" style="margin-top:6px;padding:4px 10px;font-size:12px" data-reply-to="' + c.id + '">Reply</button>') +
       // Only ever rendered when the Worker's own check already confirmed
       // this viewer is verified staff - the click itself is checked
       // again server-side regardless, same as every other write here.
       (isStaff ? '<button class="ll-btn" style="margin-top:6px;margin-left:6px;padding:4px 10px;font-size:12px;color:#994B24" data-remove-id="' + c.id + '">Remove</button>' : '');
     return '<div class="ll-comment' + (isReply ? ' reply' : '') + '">' +
-      '<div class="author">' + escapeHtml(c.author_name) + ' <span class="when">' + when + '</span></div>' +
+      '<div class="author">' + escapeHtml(c.author_name) + verifiedBadge + ' <span class="when">' + when + '</span></div>' +
       '<div>' + escapeHtml(c.body) + '</div>' +
       actions +
       '</div>';
@@ -191,12 +200,16 @@ textarea,input[type=text]{font-family:'Lora',Georgia,serif;font-size:16px;width:
     }
     var savedName = "";
     try { savedName = localStorage.getItem("ll_comment_name") || ""; } catch (e) {}
-    // Once a name's been used from this device, it's locked server-side
-    // anyway (one identity, one name) - showing it as fixed text here
-    // instead of an editable field means a different name never even
-    // gets as far as the error the Worker would otherwise return.
-    var nameField = savedName
-      ? '<p class="ll-note">Commenting as <strong>' + escapeHtml(savedName) + '</strong></p>'
+    // A verified identity's name is locked from the very first comment,
+    // not just after one's been posted - the Worker already dictates
+    // exactly what it has to be (verified_staff.label), so there's
+    // nothing for them to meaningfully choose or edit anyway.
+    var lockedName = savedName || (knownIsStaff ? knownSuggestedName : "") || "";
+    // Once a name's locked for this device, showing it as fixed text
+    // here instead of an editable field means a different name never
+    // even gets as far as the error the Worker would otherwise return.
+    var nameField = lockedName
+      ? '<p class="ll-note">Commenting as <strong>' + escapeHtml(lockedName) + '</strong></p>'
       : '<input type="text" id="ll-name" placeholder="Your name">';
     area.innerHTML =
       nameField +
@@ -204,20 +217,17 @@ textarea,input[type=text]{font-family:'Lora',Georgia,serif;font-size:16px;width:
       '<button class="ll-btn" id="ll-submit">' + (parentId ? "Post reply" : "Post comment") + '</button>' +
       '<p class="ll-note" id="ll-form-error" style="display:none;color:#994B24"></p>';
     document.getElementById("ll-submit").addEventListener("click", function () { submitComment(parentId); });
-    if (!savedName && knownIsStaff) {
+    if (!lockedName && knownIsStaff) {
+      // Only reached when verified but with no suggested name on file -
+      // pre-filled with the cursor (set on the first real tap, not a
+      // scripted focus - see the AutoFill note elsewhere in this file)
+      // sitting right before " @ LazyLarder", so typing a name slots
+      // in ahead of it.
       var nameEl = document.getElementById("ll-name");
-      var prefill = knownSuggestedName || " @ LazyLarder";
-      nameEl.value = prefill;
-      // Cursor position is only set once the field is actually tapped,
-      // not via a scripted .focus() call here - calling .focus() on a
-      // field that already has text can trigger iOS Safari's
-      // selection/AutoFill callout automatically, as if it had been
-      // long-pressed. Positioning it in response to a real tap avoids
-      // that while keeping the same convenience.
+      nameEl.value = " @ LazyLarder";
       nameEl.addEventListener("focus", function onFirstFocus() {
         nameEl.removeEventListener("focus", onFirstFocus);
-        var pos = knownSuggestedName ? prefill.length : 0;
-        nameEl.setSelectionRange(pos, pos);
+        nameEl.setSelectionRange(0, 0);
       });
     }
   }
@@ -225,7 +235,13 @@ textarea,input[type=text]{font-family:'Lora',Georgia,serif;font-size:16px;width:
   function submitComment(parentId) {
     var nameInput = document.getElementById("ll-name");
     var name = nameInput ? nameInput.value.trim() : (function () {
-      try { return localStorage.getItem("ll_comment_name") || ""; } catch (e) { return ""; }
+      try {
+        var saved = localStorage.getItem("ll_comment_name");
+        if (saved) return saved;
+      } catch (e) {}
+      // First-ever comment from a verified identity: locked straight to
+      // the suggested name, nothing saved to localStorage yet.
+      return knownSuggestedName || "";
     })();
     var body = document.getElementById("ll-text").value.trim();
     var errEl = document.getElementById("ll-form-error");
