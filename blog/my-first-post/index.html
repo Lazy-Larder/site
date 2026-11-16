@@ -61,6 +61,7 @@ textarea,input[type=text]{font-family:'Lora',Georgia,serif;font-size:16px;width:
 </section>
     <div class="ll-card ll-body">
       <button class="ll-btn" id="ll-like-btn">🥕 Like (<span id="ll-like-count">0</span>)</button>
+      <p class="ll-note" id="ll-like-error" style="display:none;color:#994B24;margin:8px 0 0"></p>
     </div>
 
     <div class="ll-card ll-body">
@@ -244,6 +245,8 @@ textarea,input[type=text]{font-family:'Lora',Georgia,serif;font-size:16px;width:
 
   document.getElementById("ll-like-btn").addEventListener("click", function () {
     var btn = document.getElementById("ll-like-btn");
+    var errEl = document.getElementById("ll-like-error");
+    errEl.style.display = "none";
     btn.disabled = true;
     fetch(API_BASE + "/api/posts/" + slug + "/like", {
       method: "POST",
@@ -255,16 +258,20 @@ textarea,input[type=text]{font-family:'Lora',Georgia,serif;font-size:16px;width:
       btn.disabled = false;
       // A failed request left the count/style untouched before -
       // nothing visibly happened, which looked exactly like a
-      // non-functioning button rather than a request that failed.
+      // non-functioning button rather than a request that failed. Shown
+      // on the page itself, not just the console, since devtools aren't
+      // always within easy reach (e.g. on an iPad).
       if (!result.ok) {
-        console.error("Like failed:", result.data.error || result);
+        errEl.textContent = result.data.error || "Something went wrong.";
+        errEl.style.display = "block";
         return;
       }
       document.getElementById("ll-like-count").textContent = result.data.count || 0;
       btn.classList.toggle("liked", !!result.data.liked);
-    }).catch(function (err) {
+    }).catch(function () {
       btn.disabled = false;
-      console.error("Like request couldn't reach the server:", err);
+      errEl.textContent = "Couldn't reach the server – try again in a moment.";
+      errEl.style.display = "block";
     });
   });
 
