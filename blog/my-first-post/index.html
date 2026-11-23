@@ -381,12 +381,12 @@ textarea,input[type=text]{font-family:'Lora',Georgia,serif;font-size:16px;width:
 
   // Coarse, one-shot analytics - deepest scroll milestone reached,
   // total time on page (sent via sendBeacon on unload), and copy
-  // events. Identity is attached when available but never required -
-  // a plain web visitor's reading behaviour still counts.
+  // events. Deliberately anonymous: no token or other identifier is
+  // sent, so reading behaviour is never linked to a person.
   var deepestMilestone = 0;
   var milestones = [25, 50, 75, 100];
   function sendEvent(type, value) {
-    var payload = JSON.stringify({ type: type, value: value, token: effectiveToken || undefined });
+    var payload = JSON.stringify({ type: type, value: value });
     var url = API_BASE + "/api/posts/" + slug + "/events";
     if (navigator.sendBeacon) {
       navigator.sendBeacon(url, new Blob([payload], { type: "application/json" }));
