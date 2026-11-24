@@ -98,7 +98,21 @@ textarea,input[type=text]{font-family:'Lora',Georgia,serif;font-size:16px;width:
   var slug = "my-first-post";
   var params = new URLSearchParams(location.search);
   var token = params.get("token");
-  if (token) { try { sessionStorage.setItem("ll_token", token); } catch (e) {} }
+  // Take the token out of the address bar once it's safely stored, so a
+  // copied or shared link never carries it (anyone holding a link with a
+  // token could comment as that person until it expires). Only done when
+  // the store worked, so a reload still has the token one way or another.
+  function storeAndHideToken(t) {
+    var stored = false;
+    try { sessionStorage.setItem("ll_token", t); stored = sessionStorage.getItem("ll_token") === t; } catch (e) {}
+    if (!stored) return;
+    try {
+      var clean = new URL(location.href);
+      clean.searchParams.delete("token");
+      history.replaceState(history.state, "", clean.pathname + clean.search + clean.hash);
+    } catch (e) {}
+  }
+  if (token) storeAndHideToken(token);
   var effectiveToken = token || (function () { try { return sessionStorage.getItem("ll_token"); } catch (e) { return null; } })();
   // Set once loadComments() hears back from the Worker - lets a
   // verified identity's first comment form start pre-filled with the
