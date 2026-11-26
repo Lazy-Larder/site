@@ -35,6 +35,7 @@ textarea,input[type=text]{font-family:'Lora',Georgia,serif;font-size:16px;width:
 .ll-comment .when{color:#6B6560;font-size:13px;margin-top:2px}
 .ll-card{display:flow-root;clear:both;border:2px solid #292929;border-radius:14px;background:#FFFFFF;padding:18px 20px;box-shadow:5px 5px 0 #286552}
 .ll-note{color:#6B6560;font-size:14px}
+.ll-code{display:inline-block;background:#F0EAE5;border:1px solid #292929;border-radius:6px;padding:1px 7px;font-weight:700;cursor:pointer}
 </style>
 </head>
 <body>
@@ -67,6 +68,10 @@ textarea,input[type=text]{font-family:'Lora',Georgia,serif;font-size:16px;width:
     <div class="ll-card ll-body">
       <h2 style="margin: 0 0 12px; font-family: 'Playfair Display', Georgia, serif">Comments <a href="#" id="ll-admin-toggle" style="float:right;font-family:'Lora',Georgia,serif;font-size:11px;font-weight:400;color:#B3ACA4">Admin</a></h2>
       <div id="ll-comment-form-area"></div>
+      <div style="display:flex;gap:8px;margin:0 0 14px">
+        <input type="text" id="ll-comment-search" placeholder="Search comments…" style="flex:1;margin-bottom:0">
+        <button class="ll-btn" id="ll-codes-only-toggle" style="padding:8px 14px;font-size:12px;white-space:nowrap">Codes only</button>
+      </div>
       <div id="ll-comments"></div>
     </div>
   </main>
@@ -150,6 +155,22 @@ textarea,input[type=text]{font-family:'Lora',Georgia,serif;font-size:16px;width:
     var entered = window.prompt("Admin secret:");
     if (!entered) return;
     try { localStorage.setItem("ll_admin_secret", entered); } catch (e) {}
+    // First time unlocking admin mode in this browser - make sure
+    // there's already a real display name ready to go, same as a
+    // verified in-app identity gets pre-filled automatically. Without
+    // this, the very first post/reply as admin would show a blank
+    // "Your name" field instead. Purely a client-side convenience, not
+    // a security check - see `commentNameFieldHtml`'s own reasoning;
+    // what's actually allowed under that name is still decided fresh,
+    // server-side, on every request regardless of what's cached here.
+    var existingName = "";
+    try { existingName = localStorage.getItem("ll_comment_name") || ""; } catch (e) {}
+    if (!existingName) {
+      var name = window.prompt('What name should your comments show? (e.g. "Ross @ LazyLarder")');
+      if (name && name.trim()) {
+        try { localStorage.setItem("ll_comment_name", name.trim()); } catch (e) {}
+      }
+    }
     renderComments(lastComments, isAdminUnlocked());
   }
 
@@ -193,6 +214,36 @@ textarea,input[type=text]{font-family:'Lora',Georgia,serif;font-size:16px;width:
   var replyingToCommentId = null;
   var lastComments = [];
   var lastIsAdmin = false;
+
+  // Same shape digits-word-digits as `ShareCodeGenerator`'s own
+  // pattern in the app (`\d+[a-zA-Z]+\d+`) - reused here, not
+  // reinvented, so a code reads as one wherever someone sees it.
+  var CODE_PATTERN = /\d+[a-zA-Z]+\d+/;
+  var commentSearchQuery = "";
+  var codesOnlyFilter = false;
+
+  function commentMatchesFilters(c) {
+    if (codesOnlyFilter && !CODE_PATTERN.test(c.body)) return false;
+    if (commentSearchQuery && (c.author_name + " " + c.body).toLowerCase().indexOf(commentSearchQuery) === -1) return false;
+    return true;
+  }
+
+  // Wraps any code-shaped substring in a tappable, copy-to-clipboard
+  // span - text outside a match still goes through `escapeHtml` same
+  // as before, this just interleaves that with the matches themselves.
+  function commentBodyHtml(body) {
+    var regex = new RegExp(CODE_PATTERN.source, "g");
+    var result = "";
+    var lastIndex = 0;
+    var match;
+    while ((match = regex.exec(body))) {
+      result += escapeHtml(body.slice(lastIndex, match.index));
+      result += '<span class="ll-code" data-code="' + escapeHtml(match[0]) + '" title="Tap to copy">' + escapeHtml(match[0]) + '</span>';
+      lastIndex = regex.lastIndex;
+    }
+    result += escapeHtml(body.slice(lastIndex));
+    return result;
+  }
 
   // Shared by the one always-visible top-of-section form (a brand new,
   // top-level comment) and any inline reply form -- `idSuffix` keeps
@@ -276,7 +327,7 @@ textarea,input[type=text]{font-family:'Lora',Georgia,serif;font-size:16px;width:
     return '<div class="ll-comment' + (isReply ? ' reply' : '') + '" id="ll-comment-' + c.id + '">' +
       '<div class="author">' + escapeHtml(c.author_name) + verifiedBadge + '</div>' +
       '<div class="when">' + when + '</div>' +
-      '<div>' + escapeHtml(c.body) + '</div>' +
+      '<div>' + commentBodyHtml(c.body) + '</div>' +
       actions +
       (replyingToCommentId === c.id ? replyFormHtml(c) : '') +
       '</div>';
@@ -285,14 +336,24 @@ textarea,input[type=text]{font-family:'Lora',Georgia,serif;font-size:16px;width:
   function renderComments(comments, isAdmin) {
     lastComments = comments;
     lastIsAdmin = isAdmin;
-    var top = comments.filter(function (c) { return !c.parent_id; });
     var repliesByParent = {};
     comments.filter(function (c) { return c.parent_id; }).forEach(function (c) {
       (repliesByParent[c.parent_id] = repliesByParent[c.parent_id] || []).push(c);
     });
+    // A thread (its top-level comment plus every reply under it) shows
+    // if *anything* in it matches the search/codes-only filter -- a
+    // reply never ends up orphaned with no visible parent, and a
+    // thread is found by either side of the conversation. Replies
+    // inside a matched thread all still show, even ones that don't
+    // themselves match, so context isn't lost.
+    var top = comments.filter(function (c) {
+      if (c.parent_id) return false;
+      if (commentMatchesFilters(c)) return true;
+      return (repliesByParent[c.id] || []).some(commentMatchesFilters);
+    });
     var el = document.getElementById("ll-comments");
     if (top.length === 0) {
-      el.innerHTML = '<p class="ll-note">No comments yet – be the first.</p>';
+      el.innerHTML = '<p class="ll-note">' + (commentSearchQuery || codesOnlyFilter ? "No matching comments." : "No comments yet – be the first.") + '</p>';
       return;
     }
     el.innerHTML = top.map(function (c) {
@@ -335,6 +396,16 @@ textarea,input[type=text]{font-family:'Lora',Georgia,serif;font-size:16px;width:
     });
     el.querySelectorAll("[data-save-edit]").forEach(function (btn) {
       btn.addEventListener("click", function () { saveCommentEdit(Number(btn.dataset.saveEdit)); });
+    });
+    el.querySelectorAll("[data-code]").forEach(function (span) {
+      span.addEventListener("click", function () {
+        if (!navigator.clipboard || !navigator.clipboard.writeText) return;
+        navigator.clipboard.writeText(span.dataset.code).then(function () {
+          var original = span.textContent;
+          span.textContent = "Copied!";
+          setTimeout(function () { span.textContent = original; }, 1200);
+        }).catch(function () {});
+      });
     });
     // Any inline reply form just rendered needs the same "@ LazyLarder"
     // pre-fill the top-level form gets - see `attachNamePrefill`'s own
@@ -497,6 +568,20 @@ textarea,input[type=text]{font-family:'Lora',Georgia,serif;font-size:16px;width:
   document.getElementById("ll-admin-toggle").addEventListener("click", function (e) {
     e.preventDefault();
     promptForAdminSecret();
+  });
+
+  document.getElementById("ll-comment-search").addEventListener("input", function (e) {
+    commentSearchQuery = e.target.value.trim().toLowerCase();
+    renderComments(lastComments, lastIsAdmin);
+  });
+
+  // Reuses `.liked`'s existing green-fill style for "on" feedback -
+  // same visual language as the Like button already uses, nothing new
+  // to add just for this.
+  document.getElementById("ll-codes-only-toggle").addEventListener("click", function () {
+    codesOnlyFilter = !codesOnlyFilter;
+    this.classList.toggle("liked", codesOnlyFilter);
+    renderComments(lastComments, lastIsAdmin);
   });
 
   document.getElementById("ll-like-btn").addEventListener("click", function () {
