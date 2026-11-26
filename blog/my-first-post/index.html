@@ -183,8 +183,68 @@ textarea,input[type=text]{font-family:'Lora',Georgia,serif;font-size:16px;width:
   // toggling this just re-renders from the already-fetched `lastComments`
   // cache below, no round trip needed just to open/close the editor.
   var editingCommentId = null;
+  // Same idea, for the reply form -- on-device... well, on-*browser*
+  // bug, user-reported: this used to always reuse the one form at the
+  // very top of the whole comments section regardless of which
+  // comment's "Reply" was clicked, which read as "write a new, separate
+  // top-level comment," not "reply to this one." Rendered inline,
+  // directly under the comment it belongs to, the same already-proven
+  // pattern `editingCommentId` uses just above.
+  var replyingToCommentId = null;
   var lastComments = [];
   var lastIsAdmin = false;
+
+  // Shared by the one always-visible top-of-section form (a brand new,
+  // top-level comment) and any inline reply form -- `idSuffix` keeps
+  // their DOM ids from colliding when both exist on the page at once.
+  // Returns the html *and* `lockedName`, since callers need the latter
+  // afterward too (to decide whether to pre-fill "@ LazyLarder").
+  function commentNameFieldHtml(idSuffix) {
+    var savedName = "";
+    try { savedName = localStorage.getItem("ll_comment_name") || ""; } catch (e) {}
+    // A verified identity's name is locked from the very first comment,
+    // not just after one's been posted - the Worker already dictates
+    // exactly what it has to be (verified_staff.label), so there's
+    // nothing for them to meaningfully choose or edit anyway.
+    var lockedName = savedName || (knownIsStaff ? knownSuggestedName : "") || "";
+    // Once a name's locked for this device, showing it as fixed text
+    // here instead of an editable field means a different name never
+    // even gets as far as the error the Worker would otherwise return.
+    var html = lockedName
+      ? '<p class="ll-note">Commenting as <strong>' + escapeHtml(lockedName) + '</strong></p>'
+      : '<input type="text" id="ll-name' + idSuffix + '" placeholder="Your name">';
+    return { html: html, lockedName: lockedName };
+  }
+
+  // Only ever reached when verified but with no suggested name on file -
+  // pre-filled with the cursor (set on the first real tap, not a
+  // scripted focus - see the AutoFill note elsewhere in this file)
+  // sitting right before " @ LazyLarder", so typing a name slots in
+  // ahead of it.
+  function attachNamePrefill(idSuffix, lockedName) {
+    if (lockedName || !knownIsStaff) return;
+    var nameEl = document.getElementById("ll-name" + idSuffix);
+    if (!nameEl) return;
+    nameEl.value = " @ LazyLarder";
+    nameEl.addEventListener("focus", function onFirstFocus() {
+      nameEl.removeEventListener("focus", onFirstFocus);
+      nameEl.setSelectionRange(0, 0);
+    });
+  }
+
+  // Inline, directly under the comment it replies to -- same reasoning
+  // as `replyingToCommentId`'s own doc comment just above.
+  function replyFormHtml(c) {
+    var nameField = commentNameFieldHtml("-reply-" + c.id);
+    return '<div style="margin-top:10px;padding:10px 12px;border:2px dashed #286552;border-radius:10px">' +
+      '<p class="ll-note" style="margin:0 0 8px">Replying to <strong>' + escapeHtml(c.author_name) + '</strong></p>' +
+      nameField.html +
+      '<textarea id="ll-text-reply-' + c.id + '" rows="3" placeholder="Write a reply…"></textarea>' +
+      '<button class="ll-btn" style="padding:6px 14px;font-size:13px" data-post-reply="' + c.id + '">Post reply</button>' +
+      '<button class="ll-btn" style="padding:6px 14px;font-size:13px;margin-left:6px" data-cancel-reply="' + c.id + '">Cancel</button>' +
+      '<p class="ll-note" id="ll-form-error-reply-' + c.id + '" style="display:none;color:#994B24;margin-top:6px"></p>' +
+      '</div>';
+  }
 
   function commentHtml(c, isReply, isAdmin) {
     var when = new Date(c.created_at * 1000).toLocaleString("en-GB", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
@@ -218,6 +278,7 @@ textarea,input[type=text]{font-family:'Lora',Georgia,serif;font-size:16px;width:
       '<div class="when">' + when + '</div>' +
       '<div>' + escapeHtml(c.body) + '</div>' +
       actions +
+      (replyingToCommentId === c.id ? replyFormHtml(c) : '') +
       '</div>';
   }
 
@@ -238,13 +299,30 @@ textarea,input[type=text]{font-family:'Lora',Georgia,serif;font-size:16px;width:
       return commentHtml(c, false, isAdmin) + (repliesByParent[c.id] || []).map(function (r) { return commentHtml(r, true, isAdmin); }).join("");
     }).join("");
     el.querySelectorAll("[data-reply-to]").forEach(function (btn) {
-      btn.addEventListener("click", function () { showCommentForm(Number(btn.dataset.replyTo)); });
+      btn.addEventListener("click", function () {
+        editingCommentId = null;
+        replyingToCommentId = Number(btn.dataset.replyTo);
+        renderComments(lastComments, lastIsAdmin);
+      });
+    });
+    el.querySelectorAll("[data-cancel-reply]").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        replyingToCommentId = null;
+        renderComments(lastComments, lastIsAdmin);
+      });
+    });
+    el.querySelectorAll("[data-post-reply]").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        var id = Number(btn.dataset.postReply);
+        submitComment(id, "-reply-" + id);
+      });
     });
     el.querySelectorAll("[data-remove-id]").forEach(function (btn) {
       btn.addEventListener("click", function () { removeComment(Number(btn.dataset.removeId)); });
     });
     el.querySelectorAll("[data-edit-id]").forEach(function (btn) {
       btn.addEventListener("click", function () {
+        replyingToCommentId = null;
         editingCommentId = Number(btn.dataset.editId);
         renderComments(lastComments, lastIsAdmin);
       });
@@ -258,6 +336,13 @@ textarea,input[type=text]{font-family:'Lora',Georgia,serif;font-size:16px;width:
     el.querySelectorAll("[data-save-edit]").forEach(function (btn) {
       btn.addEventListener("click", function () { saveCommentEdit(Number(btn.dataset.saveEdit)); });
     });
+    // Any inline reply form just rendered needs the same "@ LazyLarder"
+    // pre-fill the top-level form gets - see `attachNamePrefill`'s own
+    // doc comment.
+    if (replyingToCommentId != null) {
+      var replySuffix = "-reply-" + replyingToCommentId;
+      attachNamePrefill(replySuffix, commentNameFieldHtml(replySuffix).lockedName);
+    }
   }
 
   function saveCommentEdit(commentId) {
@@ -299,7 +384,10 @@ textarea,input[type=text]{font-family:'Lora',Georgia,serif;font-size:16px;width:
     });
   }
 
-  function showCommentForm(parentId) {
+  // The one, always-visible form at the top of the section -- a brand
+  // new, top-level comment only now; a reply renders inline via
+  // `replyFormHtml` instead (see its own doc comment for why).
+  function renderTopCommentForm() {
     var area = document.getElementById("ll-comment-form-area");
     // Admin mode also allows posting/replying -- holding ADMIN_SECRET
     // already proves strictly more than the app-signed token does, so
@@ -308,42 +396,21 @@ textarea,input[type=text]{font-family:'Lora',Georgia,serif;font-size:16px;width:
       area.innerHTML = '<p class="ll-note">Open this post from the Lazy Larder app to leave a comment.</p>';
       return;
     }
-    var savedName = "";
-    try { savedName = localStorage.getItem("ll_comment_name") || ""; } catch (e) {}
-    // A verified identity's name is locked from the very first comment,
-    // not just after one's been posted - the Worker already dictates
-    // exactly what it has to be (verified_staff.label), so there's
-    // nothing for them to meaningfully choose or edit anyway.
-    var lockedName = savedName || (knownIsStaff ? knownSuggestedName : "") || "";
-    // Once a name's locked for this device, showing it as fixed text
-    // here instead of an editable field means a different name never
-    // even gets as far as the error the Worker would otherwise return.
-    var nameField = lockedName
-      ? '<p class="ll-note">Commenting as <strong>' + escapeHtml(lockedName) + '</strong></p>'
-      : '<input type="text" id="ll-name" placeholder="Your name">';
+    var nameField = commentNameFieldHtml("");
     area.innerHTML =
-      nameField +
-      '<textarea id="ll-text" rows="3" placeholder="' + (parentId ? "Write a reply…" : "Write a comment…") + '"></textarea>' +
-      '<button class="ll-btn" id="ll-submit">' + (parentId ? "Post reply" : "Post comment") + '</button>' +
+      nameField.html +
+      '<textarea id="ll-text" rows="3" placeholder="Write a comment…"></textarea>' +
+      '<button class="ll-btn" id="ll-submit">Post comment</button>' +
       '<p class="ll-note" id="ll-form-error" style="display:none;color:#994B24"></p>';
-    document.getElementById("ll-submit").addEventListener("click", function () { submitComment(parentId); });
-    if (!lockedName && knownIsStaff) {
-      // Only reached when verified but with no suggested name on file -
-      // pre-filled with the cursor (set on the first real tap, not a
-      // scripted focus - see the AutoFill note elsewhere in this file)
-      // sitting right before " @ LazyLarder", so typing a name slots
-      // in ahead of it.
-      var nameEl = document.getElementById("ll-name");
-      nameEl.value = " @ LazyLarder";
-      nameEl.addEventListener("focus", function onFirstFocus() {
-        nameEl.removeEventListener("focus", onFirstFocus);
-        nameEl.setSelectionRange(0, 0);
-      });
-    }
+    document.getElementById("ll-submit").addEventListener("click", function () { submitComment(null, ""); });
+    attachNamePrefill("", nameField.lockedName);
   }
 
-  function submitComment(parentId) {
-    var nameInput = document.getElementById("ll-name");
+  // Shared by the top-level form and any inline reply form -- `idSuffix`
+  // picks out which one's DOM elements to read from (see
+  // `commentNameFieldHtml`'s own doc comment for why that exists).
+  function submitComment(parentId, idSuffix) {
+    var nameInput = document.getElementById("ll-name" + idSuffix);
     var name = nameInput ? nameInput.value.trim() : (function () {
       try {
         var saved = localStorage.getItem("ll_comment_name");
@@ -353,8 +420,8 @@ textarea,input[type=text]{font-family:'Lora',Georgia,serif;font-size:16px;width:
       // the suggested name, nothing saved to localStorage yet.
       return knownSuggestedName || "";
     })();
-    var body = document.getElementById("ll-text").value.trim();
-    var errEl = document.getElementById("ll-form-error");
+    var body = document.getElementById("ll-text" + idSuffix).value.trim();
+    var errEl = document.getElementById("ll-form-error" + idSuffix);
     errEl.style.display = "none";
     if (!name || !body) return;
     fetch(API_BASE + "/api/posts/" + slug + "/comments", {
@@ -374,8 +441,13 @@ textarea,input[type=text]{font-family:'Lora',Georgia,serif;font-size:16px;width:
         return;
       }
       try { localStorage.setItem("ll_comment_name", name); } catch (e) {}
-      document.getElementById("ll-comment-form-area").innerHTML = '<p class="ll-note">Posted. Thank you!</p>';
-      loadComments();
+      if (parentId) {
+        replyingToCommentId = null;
+        loadComments();
+      } else {
+        document.getElementById("ll-comment-form-area").innerHTML = '<p class="ll-note">Posted. Thank you!</p>';
+        loadComments();
+      }
     }).catch(function () {
       errEl.textContent = "Couldn't reach the server – try again in a moment.";
       errEl.style.display = "block";
@@ -388,7 +460,7 @@ textarea,input[type=text]{font-family:'Lora',Georgia,serif;font-size:16px;width:
       knownIsStaff = !!data.isStaff;
       knownSuggestedName = data.suggestedName || null;
       renderComments(data.comments || [], isAdminUnlocked());
-      showCommentForm(null);
+      renderTopCommentForm();
     });
   }
 
