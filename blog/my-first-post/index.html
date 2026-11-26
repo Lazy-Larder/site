@@ -65,7 +65,7 @@ textarea,input[type=text]{font-family:'Lora',Georgia,serif;font-size:16px;width:
     </div>
 
     <div class="ll-card ll-body">
-      <h2 style="margin: 0 0 12px; font-family: 'Playfair Display', Georgia, serif">Comments</h2>
+      <h2 style="margin: 0 0 12px; font-family: 'Playfair Display', Georgia, serif">Comments <a href="#" id="ll-admin-toggle" style="float:right;font-family:'Lora',Georgia,serif;font-size:11px;font-weight:400;color:#B3ACA4">Admin</a></h2>
       <div id="ll-comment-form-area"></div>
       <div id="ll-comments"></div>
     </div>
@@ -122,6 +122,37 @@ textarea,input[type=text]{font-family:'Lora',Georgia,serif;font-size:16px;width:
   var knownIsStaff = false;
   var knownSuggestedName = null;
 
+  // Moderation (Remove/Edit) is gated by a secret that's never shipped
+  // anywhere a visitor can read it -- not this page's own source, not
+  // the app. That's deliberate: unlike `effectiveToken` above (signed
+  // with a secret baked into the app binary, extractable by anyone
+  // determined enough), this is only ever typed in by hand and kept in
+  // this one browser's own localStorage -- see the Worker's
+  // `isAdminAuthorized` for the matching server-side check.
+  function adminSecret() {
+    try { return localStorage.getItem("ll_admin_secret") || null; } catch (e) { return null; }
+  }
+  function isAdminUnlocked() { return !!adminSecret(); }
+  function adminHeaders() {
+    var headers = { "Content-Type": "application/json" };
+    var secret = adminSecret();
+    if (secret) headers["Authorization"] = "Bearer " + secret;
+    return headers;
+  }
+  function promptForAdminSecret() {
+    if (isAdminUnlocked()) {
+      if (window.confirm("Admin mode is on for this browser. Turn it off?")) {
+        try { localStorage.removeItem("ll_admin_secret"); } catch (e) {}
+        renderComments(lastComments, isAdminUnlocked());
+      }
+      return;
+    }
+    var entered = window.prompt("Admin secret:");
+    if (!entered) return;
+    try { localStorage.setItem("ll_admin_secret", entered); } catch (e) {}
+    renderComments(lastComments, isAdminUnlocked());
+  }
+
   // Likes are open to anyone, unlike comments - this id proves
   // nothing and isn't meant to; it just lets clicking Like twice
   // toggle it off again instead of adding a second one.
@@ -153,9 +184,9 @@ textarea,input[type=text]{font-family:'Lora',Georgia,serif;font-size:16px;width:
   // cache below, no round trip needed just to open/close the editor.
   var editingCommentId = null;
   var lastComments = [];
-  var lastIsStaff = false;
+  var lastIsAdmin = false;
 
-  function commentHtml(c, isReply, isStaff) {
+  function commentHtml(c, isReply, isAdmin) {
     var when = new Date(c.created_at * 1000).toLocaleString("en-GB", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
     var verifiedBadge = STAFF_NAME_PATTERN.test(c.author_name)
       ? '<span style="display:inline-block;margin-left:6px;padding:1px 8px;border-radius:999px;background:#286552;color:#FFFFFF;font-family:\'Bricolage Grotesque\',sans-serif;font-size:11px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;vertical-align:1px">✓ Verified Admin</span>'
@@ -174,14 +205,14 @@ textarea,input[type=text]{font-family:'Lora',Georgia,serif;font-size:16px;width:
     // (`parentId = parent.parent_id ?? parent.id`), so there's nothing
     // stopping someone replying from here, just no button offering it.
     var actions = '<button class="ll-btn" style="margin-top:6px;padding:4px 10px;font-size:12px" data-reply-to="' + c.id + '">Reply</button>' +
-      // Only ever rendered when the Worker's own check already confirmed
-      // this viewer is verified staff - the click itself is checked
-      // again server-side regardless, same as every other write here.
-      (isStaff ? '<button class="ll-btn" style="margin-top:6px;margin-left:6px;padding:4px 10px;font-size:12px;color:#994B24" data-remove-id="' + c.id + '">Remove</button>' : '') +
-      // `is_mine` is computed server-side from the identity hash behind
-      // the token - only ever true for the verified identity that
-      // actually wrote this specific comment, never any other admin's.
-      (isStaff && c.is_mine ? '<button class="ll-btn" style="margin-top:6px;margin-left:6px;padding:4px 10px;font-size:12px" data-edit-id="' + c.id + '">Edit</button>' : '');
+      // Only ever rendered once this browser has admin mode unlocked
+      // (see `isAdminUnlocked`) -- the click itself is checked again
+      // server-side regardless, same as every other write here.
+      (isAdmin ? '<button class="ll-btn" style="margin-top:6px;margin-left:6px;padding:4px 10px;font-size:12px;color:#994B24" data-remove-id="' + c.id + '">Remove</button>' : '') +
+      // No `is_mine` restriction any more -- real admin can edit any
+      // comment, not just one a particular verified identity wrote
+      // (see the Worker's `handleEditComment` for why that's fine).
+      (isAdmin ? '<button class="ll-btn" style="margin-top:6px;margin-left:6px;padding:4px 10px;font-size:12px" data-edit-id="' + c.id + '">Edit</button>' : '');
     return '<div class="ll-comment' + (isReply ? ' reply' : '') + '">' +
       '<div class="author">' + escapeHtml(c.author_name) + verifiedBadge + '</div>' +
       '<div class="when">' + when + '</div>' +
@@ -190,9 +221,9 @@ textarea,input[type=text]{font-family:'Lora',Georgia,serif;font-size:16px;width:
       '</div>';
   }
 
-  function renderComments(comments, isStaff) {
+  function renderComments(comments, isAdmin) {
     lastComments = comments;
-    lastIsStaff = isStaff;
+    lastIsAdmin = isAdmin;
     var top = comments.filter(function (c) { return !c.parent_id; });
     var repliesByParent = {};
     comments.filter(function (c) { return c.parent_id; }).forEach(function (c) {
@@ -204,7 +235,7 @@ textarea,input[type=text]{font-family:'Lora',Georgia,serif;font-size:16px;width:
       return;
     }
     el.innerHTML = top.map(function (c) {
-      return commentHtml(c, false, isStaff) + (repliesByParent[c.id] || []).map(function (r) { return commentHtml(r, true, isStaff); }).join("");
+      return commentHtml(c, false, isAdmin) + (repliesByParent[c.id] || []).map(function (r) { return commentHtml(r, true, isAdmin); }).join("");
     }).join("");
     el.querySelectorAll("[data-reply-to]").forEach(function (btn) {
       btn.addEventListener("click", function () { showCommentForm(Number(btn.dataset.replyTo)); });
@@ -215,13 +246,13 @@ textarea,input[type=text]{font-family:'Lora',Georgia,serif;font-size:16px;width:
     el.querySelectorAll("[data-edit-id]").forEach(function (btn) {
       btn.addEventListener("click", function () {
         editingCommentId = Number(btn.dataset.editId);
-        renderComments(lastComments, lastIsStaff);
+        renderComments(lastComments, lastIsAdmin);
       });
     });
     el.querySelectorAll("[data-cancel-edit]").forEach(function (btn) {
       btn.addEventListener("click", function () {
         editingCommentId = null;
-        renderComments(lastComments, lastIsStaff);
+        renderComments(lastComments, lastIsAdmin);
       });
     });
     el.querySelectorAll("[data-save-edit]").forEach(function (btn) {
@@ -234,8 +265,8 @@ textarea,input[type=text]{font-family:'Lora',Georgia,serif;font-size:16px;width:
     if (!text) return;
     fetch(API_BASE + "/api/posts/" + slug + "/comments/" + commentId + "/edit", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ token: effectiveToken, body: text }),
+      headers: adminHeaders(),
+      body: JSON.stringify({ body: text }),
     }).then(function (res) {
       return res.json().then(function (data) { return { ok: res.ok, data: data }; });
     }).then(function (result) {
@@ -254,8 +285,7 @@ textarea,input[type=text]{font-family:'Lora',Georgia,serif;font-size:16px;width:
     if (!window.confirm("Remove this comment? This can't be undone from here.")) return;
     fetch(API_BASE + "/api/posts/" + slug + "/comments/" + commentId + "/hide", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ token: effectiveToken }),
+      headers: adminHeaders(),
     }).then(function (res) {
       return res.json().then(function (data) { return { ok: res.ok, data: data }; });
     }).then(function (result) {
@@ -350,7 +380,7 @@ textarea,input[type=text]{font-family:'Lora',Georgia,serif;font-size:16px;width:
     fetch(url).then(function (r) { return r.json(); }).then(function (data) {
       knownIsStaff = !!data.isStaff;
       knownSuggestedName = data.suggestedName || null;
-      renderComments(data.comments || [], knownIsStaff);
+      renderComments(data.comments || [], isAdminUnlocked());
       showCommentForm(null);
     });
   }
@@ -360,6 +390,11 @@ textarea,input[type=text]{font-family:'Lora',Georgia,serif;font-size:16px;width:
       document.getElementById("ll-like-count").textContent = data.count || 0;
     });
   }
+
+  document.getElementById("ll-admin-toggle").addEventListener("click", function (e) {
+    e.preventDefault();
+    promptForAdminSecret();
+  });
 
   document.getElementById("ll-like-btn").addEventListener("click", function () {
     var btn = document.getElementById("ll-like-btn");
