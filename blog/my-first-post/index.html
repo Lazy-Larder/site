@@ -301,7 +301,10 @@ textarea,input[type=text]{font-family:'Lora',Georgia,serif;font-size:16px;width:
 
   function showCommentForm(parentId) {
     var area = document.getElementById("ll-comment-form-area");
-    if (!effectiveToken) {
+    // Admin mode also allows posting/replying -- holding ADMIN_SECRET
+    // already proves strictly more than the app-signed token does, so
+    // there's no reason to also require opening the post from the app.
+    if (!effectiveToken && !isAdminUnlocked()) {
       area.innerHTML = '<p class="ll-note">Open this post from the Lazy Larder app to leave a comment.</p>';
       return;
     }
@@ -356,7 +359,11 @@ textarea,input[type=text]{font-family:'Lora',Georgia,serif;font-size:16px;width:
     if (!name || !body) return;
     fetch(API_BASE + "/api/posts/" + slug + "/comments", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      // `adminHeaders()` adds the admin Authorization header when this
+      // browser has one set -- `token` below still goes along too, so
+      // this works whichever (or neither, which the Worker itself then
+      // refuses) applies.
+      headers: adminHeaders(),
       body: JSON.stringify({ name: name, body: body, parentId: parentId || null, token: effectiveToken }),
     }).then(function (res) {
       return res.json().then(function (data) { return { ok: res.ok, data: data }; });
