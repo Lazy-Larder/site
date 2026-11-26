@@ -252,7 +252,7 @@ textarea,input[type=text]{font-family:'Lora',Georgia,serif;font-size:16px;width:
       ? '<span style="display:inline-block;margin-left:6px;padding:1px 8px;border-radius:999px;background:#286552;color:#FFFFFF;font-family:\'Bricolage Grotesque\',sans-serif;font-size:11px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;vertical-align:1px">✓ Verified Admin</span>'
       : '';
     if (editingCommentId === c.id) {
-      return '<div class="ll-comment' + (isReply ? ' reply' : '') + '">' +
+      return '<div class="ll-comment' + (isReply ? ' reply' : '') + '" id="ll-comment-' + c.id + '">' +
         '<div class="author">' + escapeHtml(c.author_name) + verifiedBadge + '</div>' +
         '<div class="when">' + when + '</div>' +
         '<textarea id="ll-edit-text-' + c.id + '" rows="3">' + escapeHtml(c.body) + '</textarea>' +
@@ -273,7 +273,7 @@ textarea,input[type=text]{font-family:'Lora',Georgia,serif;font-size:16px;width:
       // comment, not just one a particular verified identity wrote
       // (see the Worker's `handleEditComment` for why that's fine).
       (isAdmin ? '<button class="ll-btn" style="margin-top:6px;margin-left:6px;padding:4px 10px;font-size:12px" data-edit-id="' + c.id + '">Edit</button>' : '');
-    return '<div class="ll-comment' + (isReply ? ' reply' : '') + '">' +
+    return '<div class="ll-comment' + (isReply ? ' reply' : '') + '" id="ll-comment-' + c.id + '">' +
       '<div class="author">' + escapeHtml(c.author_name) + verifiedBadge + '</div>' +
       '<div class="when">' + when + '</div>' +
       '<div>' + escapeHtml(c.body) + '</div>' +
@@ -461,7 +461,31 @@ textarea,input[type=text]{font-family:'Lora',Georgia,serif;font-size:16px;width:
       knownSuggestedName = data.suggestedName || null;
       renderComments(data.comments || [], isAdminUnlocked());
       renderTopCommentForm();
+      scrollToAnchorCommentIfNeeded();
     });
+  }
+
+  // Deep-linked from the app's own "Someone replied to your comment"
+  // notification (`#comment-123` on the URL) -- only ever acted on
+  // once per page load, not on every later re-render `renderComments`
+  // does for its own reasons (opening a reply box, cancelling an edit,
+  // etc.), since those aren't a fresh navigation to this same anchor.
+  var hasScrolledToAnchorComment = false;
+  function scrollToAnchorCommentIfNeeded() {
+    if (hasScrolledToAnchorComment) return;
+    hasScrolledToAnchorComment = true;
+    var match = location.hash.match(/^#comment-(\d+)$/);
+    if (!match) return;
+    var target = document.getElementById("ll-comment-" + match[1]);
+    if (!target) return;
+    target.scrollIntoView({ behavior: "smooth", block: "center" });
+    // A brief highlight, not a permanent style change - just enough to
+    // draw the eye to the right comment among however many others are
+    // on the page, same reasoning as any "flash" UI pattern.
+    var originalBackground = target.style.backgroundColor;
+    target.style.transition = "background-color 1.5s ease";
+    target.style.backgroundColor = "#F0EAE5";
+    setTimeout(function () { target.style.backgroundColor = originalBackground; }, 1800);
   }
 
   function loadLikes() {
